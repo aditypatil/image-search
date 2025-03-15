@@ -1,0 +1,8 @@
+numpy
+scikit-learn
+chromadb
+streamlit
+torch
+torchvision
+Pillow
+transformers
