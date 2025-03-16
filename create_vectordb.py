@@ -43,8 +43,6 @@ def index_images(dataset_folder):
     # print(f"Dataset Folder : {dataset_folder}")
     image_paths = get_image_paths(dataset_folder,1000)
     image_embeddings = get_features_from_image_path(image_paths)
-
-
     image_embeddings = np.array(image_embeddings)
     return image_embeddings, image_paths
 

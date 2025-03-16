@@ -81,7 +81,7 @@ def find_top_k_images(query_text: str, index_name: str = "multimodal_db", k: int
             embedding_function=multimodal_ef,
             data_loader=image_loader
         )
-        
+
         # Search for nearest neighbors
         results = search_images_chromadb(query_text, k, collection)
         return [result[0] for result in results]  # Return just the image paths

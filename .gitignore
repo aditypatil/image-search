@@ -192,3 +192,7 @@ venvGlimpse/
 test_vector_db/
 .ipynb_checkpoints/
 .gitattribute
+.gitignore
+*.sqlite3
+test_vector_db*/
+*.ipynb
