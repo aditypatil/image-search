@@ -30,7 +30,7 @@ def get_image_paths(directory: str, number: int = None) -> List[str]:
 
 def get_features_from_image_path(image_paths):
     # print(f"Image Path : {image_paths}")
-    device = "cpu"
+    device = "cuda" if torch.cuda.is_available()else ( "mps" if torch.backends.mps.is_available() else "cpu")
     model, preprocess = clip.load("ViT-B/32",device=device) 
     images = [preprocess(Image.open(image_path).convert("RGB")) for image_path in image_paths]
     image_input = torch.tensor(np.stack(images))
