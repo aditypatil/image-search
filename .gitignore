@@ -195,4 +195,5 @@ test_vector_db/
 .gitignore
 *.sqlite3
 test_vector_db*/
-*.ipynb
+# *.ipynb
+chroma_db*/

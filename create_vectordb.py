@@ -14,8 +14,6 @@ import chromadb
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-
 def get_image_paths(directory: str, number: int = None) -> List[str]:
     image_paths = []
     count = 1
@@ -31,11 +29,17 @@ def get_image_paths(directory: str, number: int = None) -> List[str]:
 def get_features_from_image_path(image_paths):
     # print(f"Image Path : {image_paths}")
     device = "cuda" if torch.cuda.is_available()else ( "mps" if torch.backends.mps.is_available() else "cpu")
+    # logger.info(f"Using device: {device}")
+    # device = "cpu"
     model, preprocess = clip.load("ViT-B/32",device=device) 
-    images = [preprocess(Image.open(image_path).convert("RGB")) for image_path in image_paths]
-    image_input = torch.tensor(np.stack(images))
+    model = model.to(device, non_blocking=True)
+    images = [preprocess(Image.open(img_path)).unsqueeze(0).to(device, non_blocking=True) for img_path in image_paths]
+    # images = [preprocess(Image.open(image_path).convert("RGB")) for image_path in image_paths]
+    # image_inputs = torch.cat(images, dim=0)
+    image_input = torch.stack(images).squeeze(1).to(device, non_blocking=True)
     with torch.no_grad():
-        image_features = model.encode_image(image_input).float()
+        # image_features = model.encode_image(image_input).float()
+        image_features = model.encode_image(image_input.to(device, non_blocking=True))
     return image_features
 
 def index_images(dataset_folder):
@@ -43,7 +47,7 @@ def index_images(dataset_folder):
     # print(f"Dataset Folder : {dataset_folder}")
     image_paths = get_image_paths(dataset_folder,1000)
     image_embeddings = get_features_from_image_path(image_paths)
-    image_embeddings = np.array(image_embeddings)
+    image_embeddings = image_embeddings.cpu().numpy()
     return image_embeddings, image_paths
 
 def create_vectordb(dataset_folder, vectordb_name):
@@ -55,7 +59,12 @@ def create_vectordb(dataset_folder, vectordb_name):
 
     image_loader = ImageLoader()
     multimodal_ef = OpenCLIPEmbeddingFunction()
-    collection = client.get_or_create_collection(name="multimodal_db", embedding_function=multimodal_ef, data_loader=image_loader)
+    collection = client.get_or_create_collection(
+        name="multimodal_db", 
+        embedding_function=multimodal_ef, 
+        data_loader=image_loader, 
+        metadata={"hnsw:space": "cosine"}
+    )
     for i, embedding in enumerate(image_embeddings):
         collection.add(
             ids=[str(i)],  # Ensure the ID is a string
@@ -71,6 +80,17 @@ def main():
     parser.add_argument("vectordb_name", type=str, help="Name of the ChromaDB vector database")
 
     args = parser.parse_args()
+
+    device = "cuda" if torch.cuda.is_available()else ( "mps" if torch.backends.mps.is_available() else "cpu")
+    logger.info(f"Using device: {device}")
+    logger.info(f"PyTorch version: {torch.__version__}")
+    try:
+        logger.info(f"CLIP version: {clip.__version__}")
+    except AttributeError:
+        logger.info("CLIP version: Not available (likely installed from Git)")
+    logger.info(f"ChromaDB version: {chromadb.__version__}")
+    logger.info(f"MPS available: {torch.backends.mps.is_available()}")
+    logger.info(f"MPS built: {torch.backends.mps.is_built()}")
 
     create_vectordb(args.dataset_folder, args.vectordb_name)
 
