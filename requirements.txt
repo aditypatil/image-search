@@ -1,8 +1,19 @@
-numpy
-scikit-learn
+numpy 
+pandas 
+clip 
+# git+https://github.com/openai/CLIP.git
+torch 
+pillow 
+pillow_heif 
+matplotlib 
+tqdm 
+torchvision 
+insightface 
+scikit-learn 
+uuid
+typing 
 chromadb
-streamlit
-torch
-torchvision
-Pillow
-transformers
+onnxruntime
+rocksdict
+faiss-cpu
+geopy
