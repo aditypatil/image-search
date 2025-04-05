@@ -1,4 +1,4 @@
-# Image Search with ChromaDB and BLIP
+# Image Search using CLIP, metadata
 
 This project 
 
