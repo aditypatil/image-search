@@ -186,10 +186,11 @@ models/
 #random 
 *.log
 *.DS_Store
-*.png
-*.jpg
+# *.png
+# *.jpg
 venvGlimpse/
 test_vector_db/
+test_vector_db2/
 .ipynb_checkpoints/
 .gitattribute
 .gitignore
@@ -197,3 +198,5 @@ test_vector_db/
 test_vector_db*/
 # *.ipynb
 chroma_db*/
+new_db/
+
