@@ -17,3 +17,4 @@ onnxruntime
 rocksdict
 faiss-cpu
 geopy
+exifread
