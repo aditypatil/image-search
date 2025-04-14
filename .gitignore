@@ -199,4 +199,6 @@ test_vector_db*/
 # *.ipynb
 chroma_db*/
 new_db/
-
+json_validation/
+embed_store/*
+*.npy

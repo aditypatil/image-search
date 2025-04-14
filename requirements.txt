@@ -18,3 +18,4 @@ rocksdict
 faiss-cpu
 geopy
 exifread
+transformers
