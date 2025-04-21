@@ -9,6 +9,7 @@ import faiss
 from utils import get_next_faiss_id, get_and_orient_image
 import json
 import time
+from geo import GeoExtractor
 
 
 class CLIPSearch:
@@ -22,6 +23,8 @@ class CLIPSearch:
         self.next_id = 0
         self.img_index = None
         self.img_index_wrap = None
+        self.geo = GeoExtractor('my_agent')
+        self.geo_meta = {}
         
         print(f"Using device: {self.device}")
         
@@ -66,10 +69,12 @@ class CLIPSearch:
             self.img_index_wrap.add_with_ids(image_features.reshape(1, -1), np.array([self.next_id], dtype=np.int64))
             self.img_mapping[self.next_id] = image_path
             self.next_id += 1
+            self.geo_meta[self.next_id] = self.geo.get_address(image_path)
 
         with open(self.mapping_file, "w") as f:
             json.dump(self.img_mapping, f, indent=4)
-        
+        np.save('geo_metadata.npy', self.geo_meta, allow_pickle=True)
+
         faiss.write_index(self.img_index, self.index_file)
         faiss.write_index(self.img_index_wrap, self.index_wrap_file)
         
