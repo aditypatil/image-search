@@ -10,6 +10,7 @@ import faiss
 import insightface
 import numpy as np
 import pickle
+from rank_bm25 import BM25Okapi
 
 class FaceDetection:
     def __init__(self):
@@ -18,6 +19,12 @@ class FaceDetection:
         self.model.prepare(ctx_id=0, det_size=(640, 640))
 
     def generate_face_data(self, image_path):
+        '''
+        Generate face data from images in the given directory.
+        Adds labels to the face data using clustering.
+        saves the face data and image path index to disk.
+        '''
+
         # Read the image
         face_data = []
         img_path_index_for_face = []
@@ -25,9 +32,6 @@ class FaceDetection:
             img = cv2.imread(image_path)
             if img is None:
                 raise ValueError(f"Image at path {image_path} could not be loaded.")
-            
-            # Convert BGR to RGB
-            # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             
             # Detect faces and extract features
             faces = self.model.get(img)
@@ -62,21 +66,68 @@ class FaceDetection:
             face['label'] = labels[idx]
 
         return face_data
+    
+    def search(self, query):
+        '''
+        Search for images based on a query string using BM25 algorithm.
+        returns a list of image path indices that match the query.
+        '''
+
+        # Load the face data and image path index
+        with open('embed_store/face_data.pkl', 'rb') as f:
+            loaded_face_data = pickle.load(f)
+        
+        with open('embed_store/img_path_index_for_face.pkl', 'rb') as f:
+            img_path_index_for_face = pickle.load(f)
+
+        #Create corpus/docs for BM25 tokenization
+        name_labels = []
+        for face in loaded_face_data:
+            name_labels.append(face['label'])
+        
+        tokenized_corpus = [" " if isinstance(doc, np.int64) else doc.lower().split(" ") for doc in name_labels]
+        bm25 = BM25Okapi(tokenized_corpus)
+
+        # tokenize the search query
+        tokenized_query = query.lower().split(" ")
+        img_label_scores = bm25.get_scores(tokenized_query)
+
+        retrieved_img_indices = []
+        for idx, score in enumerate(img_label_scores):
+            if score > 0:
+                retrieved_img_indices.append(img_path_index_for_face[idx])
+
+        return retrieved_img_indices
 
 
 if __name__ == "__main__":
     # Example usage
-    image_dir = "ImageSamples"  # Replace with the actual path
-    image_paths = [os.path.join(image_dir, f) for f in os.listdir(image_dir) if f.endswith(('.jpg', '.jpeg', '.png', '.JPG'))]
-    sample_image_path = image_paths
+    # image_dir = "ImageSamples"  # Replace with the actual path
+    # image_paths = [os.path.join(image_dir, f) for f in os.listdir(image_dir) if f.endswith(('.jpg', '.jpeg', '.png', '.JPG'))]
+    # sample_image_path = image_paths
     
     face_detection = FaceDetection()
-    face_data = face_detection.generate_face_data(sample_image_path)
+    # face_data = face_detection.generate_face_data(sample_image_path)
+    img_indices = face_detection.search(query="bigboig")
+    print(img_indices)
+    # with open('embed_store/face_data.pkl', 'rb') as f:
+    #     loaded_face_data = pickle.load(f)
+
+
+    # name_labels = {0: "Aditya", 1: "Aditi", 2: "bigboig", 3: "macdriller", 4: "ineedfood"}
+    # for idx, face in enumerate(loaded_face_data):
+    #     if face['label'] in name_labels:
+    #         face['label'] = name_labels[face['label']]
     
-    with open('embed_store/face_data.pkl', 'rb') as f:
-        loaded_face_data = pickle.load(f)
-    for face in loaded_face_data:
-        print(face['label'])
+    # labels = []
+    # for face in loaded_face_data:
+    #     labels.append(face['label'])
+    # print(labels)
+
+    # with open('embed_store/face_data.pkl', 'wb') as f:
+    #     pickle.dump(loaded_face_data, f)
+    # for face in loaded_face_data:
+    #     print(face['label'])
     # face_data = face_detection.generate_clustering_face_labels(loaded_face_data)
     # for face in face_data:
     #     print(face['label'])
