@@ -200,5 +200,5 @@ test_vector_db*/
 chroma_db*/
 new_db/
 json_validation/
-embed_store/*
-*.npy
+# embed_store/*
+# *.npy
