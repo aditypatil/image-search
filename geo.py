@@ -27,16 +27,6 @@ class GeoExtractor:
         if not exif_data:
             return {}
         return {TAGS.get(tag, tag): value for tag, value in exif_data.items()}
-    
-    def __get_heif_exif_data(image):
-        """Extract EXIF data from an image."""
-        exif_data = {}
-        info = image.getexif()
-        if info:
-            for tag_id, value in info.items():
-                tag = TAGS.get(tag_id, tag_id)
-                exif_data[tag] = value
-        return exif_data
 
     def __convert_to_degrees(self, value):
         """Convert GPS coordinates stored in EXIF to degrees."""
