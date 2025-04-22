@@ -13,9 +13,10 @@ import pickle
 from rank_bm25 import BM25Okapi
 
 class FaceDetection:
-    def __init__(self):
+    def __init__(self, embedding_dir="embed_store"):
         # Initialize the InsightFace model
         self.model = insightface.app.FaceAnalysis()
+        self.embedding_dir = embedding_dir
         self.model.prepare(ctx_id=0, det_size=(640, 640))
 
     def generate_face_data(self, image_path):
@@ -43,13 +44,13 @@ class FaceDetection:
         
         face_data_with_labels = self.generate_clustering_face_labels(face_data)
         
-        with open('embed_store/face_data.pkl', 'wb') as f:
+        with open(os.path.join(self.embedding_dir, 'face_data.pkl'), 'wb') as f:
             pickle.dump(face_data_with_labels, f)
-        
-        with open('embed_store/img_path_index_for_face.pkl', 'wb') as f:
+            
+        with open(os.path.join(self.embedding_dir, 'img_path_index_for_face.pkl'), 'wb') as f:
             pickle.dump(img_path_index_for_face, f)
 
-        return face_data
+        pass
     
     def generate_clustering_face_labels(self, face_data):
 
@@ -100,16 +101,16 @@ class FaceDetection:
         return retrieved_img_indices
 
 
-if __name__ == "__main__":
+def __main__():
     # Example usage
     # image_dir = "ImageSamples"  # Replace with the actual path
     # image_paths = [os.path.join(image_dir, f) for f in os.listdir(image_dir) if f.endswith(('.jpg', '.jpeg', '.png', '.JPG'))]
     # sample_image_path = image_paths
     
-    face_detection = FaceDetection()
+    # face_detection = FaceDetection()
     # face_data = face_detection.generate_face_data(sample_image_path)
-    img_indices = face_detection.search(query="bigboig")
-    print(img_indices)
+    # img_indices = face_detection.search(query="bigboig")
+    # print(img_indices)
     # with open('embed_store/face_data.pkl', 'rb') as f:
     #     loaded_face_data = pickle.load(f)
 
@@ -131,3 +132,8 @@ if __name__ == "__main__":
     # face_data = face_detection.generate_clustering_face_labels(loaded_face_data)
     # for face in face_data:
     #     print(face['label'])
+
+    pass
+
+if __name__ == "__main__":
+    __main__()
