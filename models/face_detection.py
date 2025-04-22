@@ -11,6 +11,7 @@ import insightface
 import numpy as np
 import pickle
 from rank_bm25 import BM25Okapi
+from tqdm import tqdm
 
 class FaceDetection:
     def __init__(self, embedding_dir="embed_store"):
@@ -29,7 +30,7 @@ class FaceDetection:
         # Read the image
         face_data = []
         img_path_index_for_face = []
-        for idx, image_path in enumerate(image_path):
+        for idx, image_path in tqdm(enumerate(image_path), total=len(image_path)):
             img = cv2.imread(image_path)
             if img is None:
                 raise ValueError(f"Image at path {image_path} could not be loaded.")

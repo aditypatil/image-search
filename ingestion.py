@@ -10,6 +10,7 @@ import pickle
 # import insightface.app.common
 import models.clip_search as clip_search
 import models.face_detection as face_detection
+import models.geo_metadata as geo_metadata
 
 
 
@@ -50,10 +51,12 @@ class Ingestion:
         # INITIALISE CLIP SEARCH AND FACE DETECTION MODELS
         clip = clip_search.CLIPSearch(embedding_dir=self.embedding_dir)
         faceDetection = face_detection.FaceDetection(embedding_dir=self.embedding_dir)
-        
-        #GENERATE AND STORE METADATA
+        geo = geo_metadata.GeoExtractor(agent='my_agent')
+
+        #GENERATE AND STORE METADATA 
         clip.generate_embeddings_faiss(image_paths=image_paths)
         faceDetection.generate_face_data(image_path=image_paths)
+        geo.generate_geo_metadata(image_paths=image_paths)
         
         #Placeholder to run the label naming on face data
 

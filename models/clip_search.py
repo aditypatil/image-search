@@ -5,6 +5,7 @@ from transformers import CLIPModel, CLIPProcessor, CLIPTokenizer
 from sklearn.metrics.pairwise import cosine_similarity
 from PIL import Image
 import faiss
+from tqdm import tqdm
 
 class CLIPSearch:
     def __init__(self, model_name="openai/clip-vit-base-patch32", embedding_dir="embed_store"):
@@ -21,7 +22,7 @@ class CLIPSearch:
     def generate_embeddings(self, image_paths):
         embeddings = []
         img_filenames = []
-        for image_path in image_paths:
+        for image_path in tqdm(image_paths):
             image = Image.open(image_path).convert("RGB")
             inputs = self.processor(images=image, return_tensors="pt")
             with torch.no_grad():
@@ -63,7 +64,7 @@ class CLIPSearch:
     def generate_embeddings_faiss(self, image_paths):
         embeddings = []
         img_filenames = []
-        for image_path in image_paths:
+        for image_path in tqdm(image_paths):
             image = Image.open(image_path).convert("RGB")
             inputs = self.processor(images=image, return_tensors="pt")
             with torch.no_grad():
