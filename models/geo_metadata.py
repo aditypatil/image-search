@@ -153,10 +153,13 @@ class SearchBM25:
             score += idf * (numerator / denominator)
         return score
 
-    def search(self, query):
+    def search(self, query, geo_metadata = None):
         tokenized_query = [token for token in self.__tokenize(query) if len(token)>2]
         # book_dict = np.load(self.path, allow_pickle=True).item()
-        book_items = np.load(self.path, allow_pickle=True)
+        if geo_metadata is not None:
+            book_items = geo_metadata
+        else:
+            book_items = np.load(self.path, allow_pickle=True)
         book_tokenized = [self.__tokenize(value) for value in book_items]
         self.N = len(book_tokenized)
         self.avgdl = sum(len(doc) for doc in book_tokenized) / self.N

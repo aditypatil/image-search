@@ -23,10 +23,11 @@ class Search:
 
         # geo indices
         searchgeo = geo_metadata.SearchBM25()
-        query = "goa"
-        G_indices = searchgeo.search(query)
+        G_indices = searchgeo.search(query, geo_metadata=self.geo_data)
 
         # face indices to get F_indices
+        searchface = face_detection.FaceSearchBM25(face_store=[self.face_data, self.flatten_img_face_index])
+        F_indices = searchface.search(query= query)
 
 
         # strict sequential search strategy
@@ -36,32 +37,35 @@ class Search:
         # Apply the conditional logic
         if F_set and G_set:  # True if both sets are non-empty
             # Condition 1 met (both have results): Take intersection
+            print('taking intersection...')
             combined_indices = F_set.intersection(G_set)
         else:
+            print("taking union...")
             # Condition 2 met (at least one is empty, or both are empty): Take union
             combined_indices = F_set.union(G_set)
 
 
+
         # clip search on combined_indices. If combined indices blank, then search through entire index. Else, search into index only on images searched by combined_indices
-
-
+        if len(combined_indices) > 0:
+            searchclip = clip_search.CLIPSearch(clip_embeddings=self.clip_embed, subset_id=list(combined_indices))
+            C_indices = searchclip.search_faiss(query=query)
+            return C_indices
         
+        else:
+            searchclip = clip_search.CLIPSearch(clip_embeddings=self.clip_embed)
+            C_indices = searchclip.search_faiss(query=query)
+            return C_indices
         
-        return 
 
 
 
 def __main__():
 
-    # load up the embed_store
-    # first search strategy: F, G then CLIP:
-        # IF F&G both retrieve indices: intersection
-        # if either retrieve indices with other being null: union
-        # use the indices retrieved from both (after intersection or union) then look into CLIP
-    
-    img_indices = Search().strategy1(query = "goa")
+    srch = Search()
+    img_indices = srch.strategy1(query="aditya on beaches of goa")
     print(img_indices)
-
+    
 
     pass
 

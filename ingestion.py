@@ -1,13 +1,6 @@
-# import faiss
-# import insightface
-# import numpy as np
+
 import os
-# import cv2
-# import matplotlib.pyplot as plt
-# import sklearn
-# import pandas as pd
 import pickle
-# import insightface.app.common
 import models.clip_search as clip_search
 import models.face_detection as face_detection
 import models.geo_metadata as geo_metadata
@@ -49,7 +42,7 @@ class Ingestion:
                 image_paths = pickle.load(f)
 
         # INITIALISE CLIP SEARCH AND FACE DETECTION MODELS
-        clip = clip_search.CLIPSearch(embedding_dir=self.embedding_dir)
+        clip = clip_search.CLIP(embedding_dir=self.embedding_dir)
         faceDetection = face_detection.FaceDetection(embedding_dir=self.embedding_dir)
         geo = geo_metadata.GeoExtractor(agent='my_agent')
 
@@ -57,6 +50,7 @@ class Ingestion:
         clip.generate_embeddings_faiss(image_paths=image_paths)
         faceDetection.generate_face_data(image_path=image_paths)
         geo.generate_geo_metadata(image_paths=image_paths)
+
         
         #Placeholder to run the label naming on face data
 

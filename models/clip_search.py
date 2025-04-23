@@ -7,7 +7,8 @@ from PIL import Image
 import faiss
 from tqdm import tqdm
 
-class CLIPSearch:
+
+class CLIP:
     def __init__(self, model_name="openai/clip-vit-base-patch32", embedding_dir="embed_store"):
         self.model = CLIPModel.from_pretrained(model_name)
         self.processor = CLIPProcessor.from_pretrained(model_name)
@@ -37,30 +38,6 @@ class CLIPSearch:
         
         pass
 
-    def search(self, query, top_k=5):
-        query_inputs = self.tokenizer([query], return_tensors="pt")
-        with torch.no_grad():
-            text_features = self.model.get_text_features(**query_inputs)
-        text_embeddings = text_features / text_features.norm(p=2, dim=-1, keepdim=True)
-
-        embedding_files = "img_embeddings.npy"
-        img_embeddings = np.load(os.path.join(self.embedding_dir, embedding_files), allow_pickle=True)
-        img_filenames = np.load(os.path.join(self.embedding_dir, "img_filenames.npy"), allow_pickle=True)
-
-        similarities = []
-        for idx, embedding in enumerate(img_embeddings):
-            embedding = embedding.reshape(1, -1)
-            similarity = cosine_similarity(text_embeddings.cpu().numpy(), embedding)[0]
-            similarities.append(similarity)
-        
-        sorted_indices = sorted(range(len(similarities)), key=lambda i: similarities[i][0], reverse=True)
-        
-        top_indices = sorted_indices[:top_k]
-        # Retrieve filenames and similarity scores
-        results = [(img_filenames[i], similarities[i]) for i in top_indices]
-
-        return results
-    
     def generate_embeddings_faiss(self, image_paths):
         embeddings = []
         img_filenames = []
@@ -85,6 +62,44 @@ class CLIPSearch:
         
         pass
 
+class CLIPSearch:
+
+    def __init__(self, clip_embeddings, subset_id = None, model_name="openai/clip-vit-base-patch32"):
+        self.subset_id = subset_id
+        self.clip_embeddings = clip_embeddings
+
+        self.model = CLIPModel.from_pretrained(model_name)
+        self.device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu")
+        self.model.to(self.device)
+        self.model.eval()
+        self.tokenizer = CLIPTokenizer.from_pretrained(model_name)
+        pass
+
+    def search(self, query, top_k=5):
+        query_inputs = self.tokenizer([query], return_tensors="pt")
+        with torch.no_grad():
+            text_features = self.model.get_text_features(**query_inputs)
+        text_embeddings = text_features / text_features.norm(p=2, dim=-1, keepdim=True)
+
+        embedding_files = "img_embeddings.npy"
+        img_embeddings = np.load(os.path.join(self.embedding_dir, embedding_files), allow_pickle=True)
+        img_filenames = np.load(os.path.join(self.embedding_dir, "img_filenames.npy"), allow_pickle=True)
+
+        similarities = []
+        for idx, embedding in enumerate(img_embeddings):
+            embedding = embedding.reshape(1, -1)
+            similarity = cosine_similarity(text_embeddings.cpu().numpy(), embedding)[0]
+            similarities.append(similarity)
+        
+        sorted_indices = sorted(range(len(similarities)), key=lambda i: similarities[i][0], reverse=True)
+        
+        top_indices = sorted_indices[:top_k]
+        # Retrieve filenames and similarity scores
+        results = [(img_filenames[i], similarities[i]) for i in top_indices]
+
+        return results
+    
+
     def search_faiss(self, query, top_k=5):
         query_inputs = self.tokenizer([query], return_tensors="pt")
 
@@ -92,53 +107,64 @@ class CLIPSearch:
             text_features = self.model.get_text_features(**query_inputs)
         text_embeddings = text_features / text_features.norm(p=2, dim=-1, keepdim=True)
 
-        embedding_files = "img_embeddings.bin" # currently looading from a single .bin file
-        img_embeddings = faiss.read_index(os.path.join(self.embedding_dir, embedding_files))
-        img_filenames = np.load(os.path.join(self.embedding_dir, "img_filenames.npy"), allow_pickle=True)
+        # embedding_files = "img_embeddings.bin" # currently looading from a single .bin file
+        img_embeddings = self.clip_embeddings
+        # img_filenames = np.load(os.path.join(self.embedding_dir, "img_filenames.npy"), allow_pickle=True)
 
-        D, I = img_embeddings.search(text_embeddings, k=5) # IndexFlatL2 search for text embeddings
+        if self.subset_id is not None:
+            id_selector = faiss.IDSelectorBatch(np.array(self.subset_id, dtype='int64'))
+            search_params = faiss.SearchParameters()
+            search_params.sel = id_selector
 
-        results = [(img_filenames[idx], D[0][i]) for i, idx in enumerate(I[0])] # D[0] and I[0] since query is 1D
+            D, I = img_embeddings.search(text_embeddings, k = 5, params=search_params)
+        
+        else:
+            D, I = img_embeddings.search(text_embeddings, k=5) # IndexFlatL2 search for text embeddings
 
-        return results
+        return I[0]
 
 
 def __main__():
-
-    # import inspect
-    # clip_search = CLIPSearch()
-    # print(inspect.signature(faiss.IndexFlatL2.search).parameters)
-    # print(dir(faiss.IDSelectorBatch))
-    # results = clip_search.search_faiss('pink flower', top_k=5)
-    # print(results)
-    # img_embed, img_filename, text_embed = clip_search.search_faiss("pink flower")
-    # print(img_embed.ntotal, img_filename.shape, text_embed.shape)
-
-
-    # indices_to_search = [0, 1, 2, 3, 4, 10, 12, 14]  # Example indices to search
-    # ind_to_search_2 = np.random.choice(100, 20, replace=False)
-    # params = faiss.SearchParameters(sel=faiss.IDSelectorBatch(np.array(ind_to_search_2, dtype='int64')))
     
-    # D, I = img_embed.search(text_embed, k=5, params = params) # IndexFlatL2 search for text embeddings
+    # import pickle
+
+    # clip = CLIPSearch()
+
+    # query = "mountains"
+
+    # query_inputs = clip.tokenizer([query], return_tensors="pt")
+
+    # with torch.no_grad():
+    #     text_features = clip.model.get_text_features(**query_inputs)
+    # text_embeddings = text_features / text_features.norm(p=2, dim=-1, keepdim=True)
+
+
+
+    # # Load the index from the file
+    # with open(os.path.join("embed_store", "img_path_index.pkl"), "rb") as f:
+    #     img_path_index = pickle.load(f)
+    
+    # index = faiss.read_index('embed_store/img_embeddings.bin')
+
+    # subset_ids = [0, 2, 5, 7, 10, 12, 17]
+
+    # # Create an IDSelector to specify the subset of vectors
+    # id_selector = faiss.IDSelectorBatch(np.array(subset_ids, dtype='int64'))
+
+    # # Create Search Parameters and set the IDSelector
+    # search_params = faiss.SearchParameters()
+    # search_params.sel = id_selector
+
+    # # Perform the search with the IDSelector
+    # D, I = index.search(text_embeddings, k = 5, params=search_params)
     # print(D, I)
 
-    # D, I = img_embed.search(text_embed, k=5)
-    # print(D, I)
 
-    # results = [(img_filename[idx], D[0][i]) for i, idx in enumerate(I[0])]
-    # print(results)
-    # image_dir = "ImageSamples"  # Replace with the actual path
-    # image_paths = [os.path.join(image_dir, f) for f in os.listdir(image_dir) if f.endswith(('.jpg', '.jpeg', '.png', '.JPG'))]
-
-    # clip_search.generate_embeddings_faiss(image_paths[:10])
-
-    # embed_idx = faiss.read_index("embed_store/img_embeddings.bin")
-    # embed_idx.search()
-
-    # query = "A description of the image you want to search for"
-    # results = clip_search.search(query, top_k=5)
-    # for filename, score in results:
-    #     print(f"Filename: {filename}, Similarity Score: {score}")
+    # Dfull, Ifull = index.search(text_embeddings, k = 5)
+    # print(Dfull, Ifull)
+    
+    # selected_paths = [img_path_index[i] for i in Ifull[0]]
+    # print(selected_paths)
 
     pass
 
