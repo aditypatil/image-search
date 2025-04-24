@@ -46,7 +46,7 @@ The system is modular, with distinct components for ingestion, search, and metad
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-repo/image-search-system.git
+   git clone https://github.com/aditypatil/image-search.git
    cd image-search-system
    ```
 
