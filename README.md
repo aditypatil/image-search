@@ -1,4 +1,4 @@
-# Image Search Syatem
+# Image Search System
 
 ## Overview
 
