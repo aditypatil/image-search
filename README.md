@@ -126,8 +126,8 @@ image-search-system/
 │   ├── __init__.py
 │   ├── clip_search.py            # CLIP embedding generation and search
 │   ├── face_detection.py         # Face detection and clustering
-│   ├── geo_metadata.py           # Geolocation metadata extraction
-│   └── retrieval.py              # Combined search strategy
+│   └── geo_metadata.py           # Geolocation metadata extraction
+├── retrieval.py                  # Combined search strategy
 ├── ingestion.py                  # Data ingestion pipeline
 ├── README.md                     # Project documentation
 └── requirements.txt              # Python dependencies
