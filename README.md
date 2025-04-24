@@ -61,30 +61,6 @@ The system is modular, with distinct components for ingestion, search, and metad
    pip install -r requirements.txt
    ```
 
-   Example `requirements.txt`:
-   ```text
-    opencv-python==4.8.0.76
-    rank-bm25==0.2.2
-    geopy==2.3.0
-    clip @ git+https://github.com/openai/CLIP.git
-    faiss-cpu==1.9.0
-    geopy==2.4.1
-    insightface==0.7.3
-    matplotlib==3.10.1
-    numpy==2.2.4
-    onnxruntime==1.21.0
-    pandas==2.2.3
-    pillow==11.2.1
-    pillow_heif==0.22.0
-    scikit-learn==1.6.1
-    torch==2.6.0
-    torchvision==0.21.0
-    tqdm==4.67.1
-    transformers==4.51.2
-    typing==3.7.4.3
-    uuid==1.30
-   ```
-
 4. **Prepare the Embedding Directory**:
    Create a directory (e.g., `embed_store`) to store embeddings and metadata:
    ```bash
