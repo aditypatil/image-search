@@ -24,8 +24,8 @@ class Ingestion:
 
     def _img_path_index(self):
         # Generate image paths from directory and store list
-        formats = ('.jpg', '.jpeg', '.png', '.JPG')
-        image_paths = [os.path.join(self.images_dir, f) for f in os.listdir(self.images_dir) if f.endswith(formats)]
+        formats = ('.jpg', '.jpeg', '.png', '.heic', '.heif')
+        image_paths = [os.path.join(self.images_dir, f) for f in os.listdir(self.images_dir) if f.lower().endswith(formats)]
         # save image paths to disk
         with open(os.path.join(self.embedding_dir, 'img_path_index.pkl'), 'wb') as f:
             pickle.dump(image_paths, f)

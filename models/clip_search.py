@@ -6,6 +6,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from PIL import Image
 import faiss
 from tqdm import tqdm
+import utils
 
 
 class CLIP:
@@ -24,8 +25,9 @@ class CLIP:
         embeddings = []
         img_filenames = []
         for image_path in tqdm(image_paths):
-            image = Image.open(image_path).convert("RGB")
+            image = utils.get_and_orient_image(image_path)
             inputs = self.processor(images=image, return_tensors="pt")
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
             with torch.no_grad():
                 image_features = self.model.get_image_features(**inputs)
             image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)
@@ -42,8 +44,9 @@ class CLIP:
         embeddings = []
         img_filenames = []
         for image_path in tqdm(image_paths):
-            image = Image.open(image_path).convert("RGB")
+            image = utils.get_and_orient_image(image_path)
             inputs = self.processor(images=image, return_tensors="pt")
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
             with torch.no_grad():
                 image_features = self.model.get_image_features(**inputs)
             image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)
@@ -64,7 +67,7 @@ class CLIP:
 
 class CLIPSearch:
 
-    def __init__(self, clip_embeddings, subset_id = None, model_name="openai/clip-vit-base-patch32"):
+    def __init__(self, clip_embeddings, subset_id = None, model_name="openai/clip-vit-base-patch32", embedding_dir = "embed_store"):
         self.subset_id = subset_id
         self.clip_embeddings = clip_embeddings
 
@@ -73,10 +76,12 @@ class CLIPSearch:
         self.model.to(self.device)
         self.model.eval()
         self.tokenizer = CLIPTokenizer.from_pretrained(model_name)
+        self.embedding_dir = embedding_dir
         pass
 
     def search(self, query, top_k=5):
         query_inputs = self.tokenizer([query], return_tensors="pt")
+        query_inputs = {k: v.to(self.device) for k, v in query_inputs.items()}
         with torch.no_grad():
             text_features = self.model.get_text_features(**query_inputs)
         text_embeddings = text_features / text_features.norm(p=2, dim=-1, keepdim=True)
@@ -102,7 +107,7 @@ class CLIPSearch:
 
     def search_faiss(self, query, top_k=5):
         query_inputs = self.tokenizer([query], return_tensors="pt")
-
+        query_inputs = {k: v.to(self.device) for k, v in query_inputs.items()}
         with torch.no_grad():
             text_features = self.model.get_text_features(**query_inputs)
         text_embeddings = text_features / text_features.norm(p=2, dim=-1, keepdim=True)
@@ -116,10 +121,10 @@ class CLIPSearch:
             search_params = faiss.SearchParameters()
             search_params.sel = id_selector
 
-            D, I = img_embeddings.search(text_embeddings, k = top_k, params=search_params)
+            D, I = img_embeddings.search(text_embeddings.cpu().numpy(), k = top_k, params=search_params)
         
         else:
-            D, I = img_embeddings.search(text_embeddings, k = top_k) # IndexFlatL2 search for text embeddings
+            D, I = img_embeddings.search(text_embeddings.cpu().numpy(), k = top_k) # IndexFlatL2 search for text embeddings
 
         return I[0]
 

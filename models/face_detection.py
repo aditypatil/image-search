@@ -2,6 +2,8 @@ import faiss
 import insightface
 import numpy as np
 import os
+import sys
+import contextlib
 import cv2
 import matplotlib.pyplot as plt
 import sklearn
@@ -12,13 +14,25 @@ import numpy as np
 import pickle
 from rank_bm25 import BM25Okapi
 from tqdm import tqdm
+import utils
+
+@contextlib.contextmanager
+def suppress_stdout():
+    with open(os.devnull, "w") as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
 
 class FaceDetection:
     def __init__(self, embedding_dir="embed_store"):
         # Initialize the InsightFace model
-        self.model = insightface.app.FaceAnalysis()
+        with suppress_stdout():
+            self.model = insightface.app.FaceAnalysis()
+            self.model.prepare(ctx_id=0, det_size=(640, 640))
         self.embedding_dir = embedding_dir
-        self.model.prepare(ctx_id=0, det_size=(640, 640))
 
     def generate_face_data(self, image_path):
         '''
@@ -31,7 +45,8 @@ class FaceDetection:
         face_data = []
         img_path_index_for_face = []
         for idx, image_path in tqdm(enumerate(image_path), total=len(image_path)):
-            img = cv2.imread(image_path)
+            pil_img = utils.get_and_orient_image(image_path)
+            img = np.array(pil_img)
             if img is None:
                 raise ValueError(f"Image at path {image_path} could not be loaded.")
             
@@ -103,7 +118,7 @@ class FaceSearchBM25:
 
         return retrieved_img_indices
 
-
+"""
 def __main__():
     # Example usage
     # image_dir = "ImageSamples"  # Replace with the actual path
@@ -145,3 +160,5 @@ def __main__():
 
 if __name__ == "__main__":
     __main__()
+
+"""

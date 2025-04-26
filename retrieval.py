@@ -33,19 +33,22 @@ class Search:
         F_set = set(F_indices)
         G_set = set(G_indices)
 
+        combined_indices = None
+
         # Apply the conditional logic
         if F_set and G_set:  # True if both sets are non-empty
             # Condition 1 met (both have results): Take intersection
             print('taking intersection...')
             combined_indices = F_set.intersection(G_set)
-        else:
+        elif F_set or G_set:
             print("taking union...")
             # Condition 2 met (at least one is empty, or both are empty): Take union
             combined_indices = F_set.union(G_set)
-
+        else: 
+            print("No location or people found. Doing semantic search via CLIP...")
 
         # clip search on combined_indices. If combined indices blank, then search through entire index. Else, search into index only on images searched by combined_indices
-        if len(combined_indices) > 0:
+        if combined_indices:
             searchclip = clip_search.CLIPSearch(clip_embeddings=self.clip_embed, subset_id=list(combined_indices))
             C_indices = searchclip.search_faiss(query=query, top_k=10)
             return C_indices

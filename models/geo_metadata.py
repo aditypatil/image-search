@@ -178,6 +178,7 @@ class SearchBM25:
         results = [key for score, key, val in ranked if score>0]
         return results
 
+"""
 def __main__():
     
     # file_name = 'img_path_index.pkl'
@@ -200,4 +201,5 @@ def __main__():
 
 if __name__=='__main__':
     __main__()
-    
+
+"""
