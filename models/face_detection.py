@@ -87,9 +87,9 @@ class FaceSearchBM25:
         #Create corpus/docs for BM25 tokenization
         name_labels = []
         for face in loaded_face_data:
-            name_labels.append(face['label'])
+            name_labels.append(face['name'])
         
-        tokenized_corpus = [" " if isinstance(doc, np.int64) else doc.lower().split(" ") for doc in name_labels]
+        tokenized_corpus = [doc.lower().split(" ") for doc in name_labels]
         bm25 = BM25Okapi(tokenized_corpus)
 
         # tokenize the search query
@@ -114,22 +114,33 @@ def __main__():
     # face_data = face_detection.generate_face_data(sample_image_path)
     # img_indices = face_detection.search(query="bigboig")
     # print(img_indices)
-    def add_dummy_faces():
-        with open('embed_store/face_data.pkl', 'rb') as f:
-            loaded_face_data = pickle.load(f)
+    embed_dir = 'embed_store'
+    face_data = pickle.load(open(os.path.join(embed_dir, 'face_data.pkl'), 'rb'))
+    flatten_img_face_index = pickle.load(open(os.path.join(embed_dir, 'img_path_index_for_face.pkl'), 'rb'))
+    img_path_index = pickle.load(open(os.path.join(embed_dir, 'img_path_index.pkl'), 'rb'))
+    fsearch = FaceSearchBM25(face_store=[face_data, flatten_img_face_index])
+    
+    query = "aditya"
+    img_idx = fsearch.search(query)
+    retrieved_img_paths = [img_path_index[idx] for idx in img_idx]
+    print(retrieved_img_paths)
+
+    # def add_dummy_faces():
+    #     with open('embed_store/face_data.pkl', 'rb') as f:
+    #         loaded_face_data = pickle.load(f)
 
 
-        name_labels = {0: "Aditya", 1: "Aditi", 2: "bigboig", 3: "macdriller", 4: "ineedfood"}
-        for idx, face in enumerate(loaded_face_data):
-            if face['label'] in name_labels:
-                face['label'] = name_labels[face['label']]
+    #     name_labels = {0: "Aditya", 1: "Aditi", 2: "bigboig", 3: "macdriller", 4: "ineedfood"}
+    #     for idx, face in enumerate(loaded_face_data):
+    #         if face['label'] in name_labels:
+    #             face['label'] = name_labels[face['label']]
 
-        with open('embed_store/face_data.pkl', 'wb') as f:
-            pickle.dump(loaded_face_data, f)
+    #     with open('embed_store/face_data.pkl', 'wb') as f:
+    #         pickle.dump(loaded_face_data, f)
         
-        pass
+    #     pass
 
-    add_dummy_faces()
+    # add_dummy_faces()
 
 
 if __name__ == "__main__":

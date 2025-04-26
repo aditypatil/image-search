@@ -116,10 +116,10 @@ class CLIPSearch:
             search_params = faiss.SearchParameters()
             search_params.sel = id_selector
 
-            D, I = img_embeddings.search(text_embeddings, k = 5, params=search_params)
+            D, I = img_embeddings.search(text_embeddings, k = top_k, params=search_params)
         
         else:
-            D, I = img_embeddings.search(text_embeddings, k=5) # IndexFlatL2 search for text embeddings
+            D, I = img_embeddings.search(text_embeddings, k = top_k) # IndexFlatL2 search for text embeddings
 
         return I[0]
 

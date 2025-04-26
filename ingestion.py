@@ -4,7 +4,7 @@ import pickle
 import models.clip_search as clip_search
 import models.face_detection as face_detection
 import models.geo_metadata as geo_metadata
-
+import people_library
 
 
 # handle for all data ingestion cases
@@ -53,14 +53,20 @@ class Ingestion:
 
         
         #Placeholder to run the label naming on face data
-
+        people = people_library.PeopleLibrary()
+        plist = people._get_top_faces(top_k=20)
+        for idx, p in enumerate(plist):
+            print(f"img path index: {idx}")
+            people._get_face_crop(p)
+        
+        return plist
 
 def __main__():
 
     data_ingestion = Ingestion(embedding_dir='embed_store', images_dir="ImageSamples")
-    data_ingestion.run_pipeline()
+    plist = data_ingestion.run_pipeline()
 
-    pass
+    return plist
 
 if __name__ == "__main__":
     __main__()

@@ -29,7 +29,6 @@ class Search:
         searchface = face_detection.FaceSearchBM25(face_store=[self.face_data, self.flatten_img_face_index])
         F_indices = searchface.search(query= query)
 
-
         # strict sequential search strategy
         F_set = set(F_indices)
         G_set = set(G_indices)
@@ -45,29 +44,26 @@ class Search:
             combined_indices = F_set.union(G_set)
 
 
-
         # clip search on combined_indices. If combined indices blank, then search through entire index. Else, search into index only on images searched by combined_indices
         if len(combined_indices) > 0:
             searchclip = clip_search.CLIPSearch(clip_embeddings=self.clip_embed, subset_id=list(combined_indices))
-            C_indices = searchclip.search_faiss(query=query)
+            C_indices = searchclip.search_faiss(query=query, top_k=10)
             return C_indices
         
         else:
             searchclip = clip_search.CLIPSearch(clip_embeddings=self.clip_embed)
-            C_indices = searchclip.search_faiss(query=query)
+            C_indices = searchclip.search_faiss(query=query, top_k=10)
             return C_indices
         
 
 
 
-def __main__():
+def __main__(query = "aditya"):
 
     srch = Search()
-    img_indices = srch.strategy1(query="aditya on beaches of goa")
-    print(img_indices)
+    img_indices = srch.strategy1(query)
+    return img_indices
     
-
-    pass
 
 if __name__ == '__main__':
     __main__()
