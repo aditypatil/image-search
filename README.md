@@ -14,6 +14,9 @@ This project provides a robust system for image search and metadata extraction, 
 - [Dependencies](#dependencies)
 - [References](#references)
 - ~[License](#license)~
+# Image Search using CLIP, metadata
+
+This project 
 
 ## Features
 
