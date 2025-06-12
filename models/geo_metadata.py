@@ -155,6 +155,10 @@ class SearchBM25:
 
     def search(self, query, geo_metadata = None):
         tokenized_query = [token for token in self.__tokenize(query) if len(token)>2]
+
+        # print(self.__tokenize(query))
+        # print(tokenized_query)
+
         # book_dict = np.load(self.path, allow_pickle=True).item()
         if geo_metadata is not None:
             book_items = geo_metadata
@@ -178,9 +182,9 @@ class SearchBM25:
         results = [key for score, key, val in ranked if score>0]
         return results
 
-"""
+
 def __main__():
-    
+
     # file_name = 'img_path_index.pkl'
     # embedding_dir = "embed_store"
     # file_name = 'img_path_index.pkl'
@@ -191,15 +195,48 @@ def __main__():
     # print(img_path_index)
     # geo = GeoExtractor(agent='my_agent')
     # geo.generate_geo_metadata(image_paths=img_path_index)
+    
+    current_file_dir = os.path.dirname(os.path.abspath(__file__))
+    embed_store_path = os.path.join(current_file_dir, '..', 'embed_store')
 
-    # searchgeo = SearchBM25()
-    # query = "goa"
-    # filtered_indices = searchgeo.search(query)
-    # print(filtered_indices)
+    file_to_open_path = os.path.join(embed_store_path, 'geo_metadata.npy')
+
+    with open(file_to_open_path, 'rb') as f:
+        geo_metadata = np.load(f)
+    print(geo_metadata)
+
+
+    # TESTING FOR RETRIEVAL STRATEGY 2:
+    searchgeo = SearchBM25()
+    query = "goa or mumbai or hello in the palace"
+    filtered_indices = searchgeo.search(query, geo_metadata=geo_metadata)
+    tokens = searchgeo._SearchBM25__tokenize(query= query)
+
+    
+    class EntityOps:
+
+        def __init__(self, name, indices):
+            self.name = name
+            self.indices = indices
+        
+        def __repr__(self):
+            return f"name: {self.name}; indices: {self.indices}"
+
+    entities = []
+    for token in tokens:
+        
+        token_filtered_indices = searchgeo.search(token, geo_metadata=geo_metadata)
+        if len(token_filtered_indices) > 0:
+            geo_entity = EntityOps(name= token, indices= token_filtered_indices)
+            entities.append(geo_entity)
+
+    print(tokens)
+    print(filtered_indices)
+    print(entities)
 
     pass
 
 if __name__=='__main__':
     __main__()
 
-"""
+
