@@ -5,6 +5,7 @@ import models.clip_search as clip_search
 import models.face_detection as face_detection
 import models.geo_metadata as geo_metadata
 import people_library
+import models.datetime_metadata as dt_metadata
 
 
 # handle for all data ingestion cases
@@ -45,11 +46,14 @@ class Ingestion:
         clip = clip_search.CLIP(embedding_dir=self.embedding_dir)
         faceDetection = face_detection.FaceDetection(embedding_dir=self.embedding_dir)
         geo = geo_metadata.GeoExtractor(agent='my_agent')
+        datetime = dt_metadata.DateTimeExtractor(embedding_dir=self.embedding_dir)
 
         #GENERATE AND STORE METADATA 
+        datetime.generate_datetime_metadata(image_paths=image_paths)
         clip.generate_embeddings_faiss(image_paths=image_paths)
         faceDetection.generate_face_data(image_path=image_paths)
         geo.generate_geo_metadata(image_paths=image_paths)
+        
 
         
         #Placeholder to run the label naming on face data
