@@ -175,7 +175,7 @@ cython_debug/
 
 # Input Data
 input/
-models/
+# models/
 
 # Data Files
 *.csv
@@ -201,3 +201,5 @@ chroma_db*/
 new_db/
 duckling/
 embed_store/
+embed_backup/
+*.npy
