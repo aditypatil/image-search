@@ -44,12 +44,9 @@ class DateTimeExtractor:
     def __get_file_date_creation__(self, image_path):
         """Fallback to date file was created if issues with EXIF"""
         stats = os.stat(image_path)
-        created = datetime.fromtimestamp(stats.st_ctime)
-        created = created.replace(tzinfo=self.default_tz)
-        offset = created.strftime('%z')
-        base = datetime.strptime(created, "%Y-%m-%dT%H:%M:%S")
-        offset = offset[:-2] + ':' + offset[-2:]
-        return base + offset
+        # Create a timezone-aware datetime from the creation time
+        created = datetime.fromtimestamp(stats.st_ctime, tz=self.default_tz)
+        return created
 
     def __extract_datetime__(self, image_path):
         """Extract datetime from EXIF"""
