@@ -40,9 +40,9 @@ class GeoExtractor:
         """Extract GPS coordinates from EXIF data."""
         if filetype=='heif':
             gps_info = exif_data
-        else:
-            if 'GPSInfo' in exif_data:
-                gps_info = exif_data['GPSInfo']
+        elif 'GPSInfo' in exif_data:
+            gps_info = exif_data['GPSInfo']
+        else: return None
         gps_data = {GPSTAGS.get(tag, tag): value for tag, value in gps_info.items()}
         # print(gps_data)
         if 'GPSLatitude' in gps_data and 'GPSLongitude' in gps_data:

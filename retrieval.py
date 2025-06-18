@@ -460,9 +460,10 @@ class Search:
 
         duckling = dtime.DucklingEngine(port=8010)
         dt_search = dtime.DateSearch(self.datetime_data)
+        # print(self.datetime_data)
         dtime_indices = dt_search.search(duckling.get_response(query))
         del duckling
-        print("Duckling indices: {dtime_indices}")
+        # print(f"Duckling indices: {dtime_indices}")
         
 
         entity_paths_info = extract_entity_paths(query= query)
@@ -580,7 +581,9 @@ class Search:
         
 
         # HANDLING INDICES ACROSS SEARCH RESULTS
-        dtime_indices = set(dtime_indices)
+        if dtime_indices:
+            dtime_indices = set(dtime_indices)
+        else: dtime_indices = set()
 
         # Combine all sets based on availability
         all_sets = [s for s in [final_loc_set, final_name_set, dtime_indices] if s]

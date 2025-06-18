@@ -87,7 +87,7 @@ class DateTimeExtractor:
             
             if dtexif:
                 # Format: "YYYY:MM:DD HH:MM:SS"
-                dt = datetime.strptime(dtexif, '%Y-%m-%dT%H:%M:%S')
+                dt = datetime.strptime(dtexif, '%Y:%m:%d %H:%M:%S')
                 
                 if dtexif_zone:
                     # Parse timezone offset (format: "+05:30" or "-08:00")
@@ -111,7 +111,7 @@ class DateTimeExtractor:
 
         except (UnidentifiedImageError, AttributeError, KeyError, OSError, ValueError) as e:
             datetime_extract = None
-            # print(f"Error reading EXIF from {image_path}: \n{e}")
+            print(f"Error reading EXIF from {image_path}: \n{e}")
         
         if datetime_extract==None:
             return self.__format_iso__(self.__get_file_date_creation__(image_path))
@@ -293,10 +293,10 @@ class DateSearch:
         for i, dt in enumerate(self.datebase):
             if self.__grain_match__(dt_in, dt, grain):
                 # if count<10:
-                    # print(f"Matched date: {dt}, index: {i}")
+                #     print(f"Matched date: {dt}, index: {i}")
                 indices.append(i)
                 count+=1
-        print(f"Total Datetime Matches Found: {count}")
+        # print(f"Total Datetime Matches Found: {count}")
         return indices
     
     def day_of_week_lookup(self, dt_in, high_grain):
@@ -310,7 +310,7 @@ class DateSearch:
                     # print(f"Matched date: {dt}, index: {i}")
                 indices.append(i)
                 count+=1
-        print(f"Total Datetime Matches Found: {count}")
+        # print(f"Total Datetime Matches Found: {count}")
         return indices
     
     def repeat_lookup(self, dt_in, low_grain, high_grain):
@@ -319,10 +319,10 @@ class DateSearch:
         for i, dt in enumerate(self.datebase):
             if self.__grain_range_match__(dt_in, dt, low_grain, high_grain):
                 # if count<10:
-                    # print(f"Matched date: {dt}, index: {i}")
+                #     print(f"Matched date: {dt}, index: {i}")
                 indices.append(i)
                 count+=1
-        print(f"Total Datetime Matches Found: {count}")
+        # print(f"Total Datetime Matches Found: {count}")
         return indices
     
     def interval_lookup(self, dt_start=datetime.fromisoformat('1980-01-01T00:00:00+05:30'), dt_end=datetime.fromisoformat("2050-12-31T11:59:59+05:30")):
@@ -331,10 +331,10 @@ class DateSearch:
         for i, dt in enumerate(self.datebase):
             if self.__interval_match__(dt, dt_start, dt_end):
                 # if count<10:
-                    # print(f"Matched date: {dt}, index: {i}")
+                #     print(f"Matched date: {dt}, index: {i}")
                 indices.append(i)
                 count+=1
-        print(f"Total Datetime Matches Found: {count}")
+        # print(f"Total Datetime Matches Found: {count}")
         return indices
 
     def repeat_interval_lookup(self, dt_start, dt_end, rept_freq):
@@ -361,7 +361,7 @@ class DateSearch:
                     indices.append(i)
                     count+=1
             
-        print(f"Total Datetime Matches Found: {count}")
+        # print(f"Total Datetime Matches Found: {count}")
         return indices
     
     def search(self, responses):
@@ -437,15 +437,17 @@ class DateSearch:
                 else:
                     return []
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    datetime_data = [datetime.fromisoformat(date) for date in np.load(os.path.join('..', 'datetime_metadata.npy'), allow_pickle=True) if date is not None]
-    query = "August vibes"
+#     datetime_data = [datetime.fromisoformat(str(date)) for date in np.load(os.path.join('..', 'embed_store', 'datetime_metadata.npy'), allow_pickle=True) if date is not None]
+#     query = "March 30 2021"
 
-    duckling = DucklingEngine(port=8010)
-    dt_search = DateSearch(datetime_data)
-    dtime_indices = dt_search.search(duckling.get_response(query))
-    del duckling
+#     # print(datetime_data)
+
+#     duckling = DucklingEngine(port=8010)
+#     dt_search = DateSearch(datetime_data)
+#     dtime_indices = dt_search.search(duckling.get_response(query))
+#     del duckling
 
 #     current_file_dir = os.path.dirname(os.path.abspath(__file__))
 #     # embed_store_path = os.path.join(current_file_dir, '..', 'embed_store')
