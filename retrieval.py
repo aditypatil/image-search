@@ -458,11 +458,11 @@ class Search:
         
 
 
-        duckling = dtime.DucklingEngine(port=8010)
+        # duckling = dtime.DucklingEngine(port=8010)
         dt_search = dtime.DateSearch(self.datetime_data)
         # print(self.datetime_data)
-        dtime_indices = dt_search.search(duckling.get_response(query))
-        del duckling
+        dtime_indices = dt_search.search(responses= dtime.WIT().get_response(query= query))
+        # del duckling
         # print(f"Duckling indices: {dtime_indices}")
         
 

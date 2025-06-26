@@ -13,6 +13,11 @@ import subprocess
 import atexit
 from zoneinfo import ZoneInfo
 import time
+from wit import Wit
+from dotenv import load_dotenv
+
+
+load_dotenv() 
 
 register_heif_opener()
 
@@ -211,6 +216,143 @@ class DucklingEngine:
 
         response = requests.post(self.url, data=payload, headers=headers)
         return response.json()
+    
+class WIT:
+
+    def __init__(self):
+
+        WIT_ACCESS_TOKEN = os.getenv('WIT_ACCESS_TOKEN')
+        self.wit_client = Wit(WIT_ACCESS_TOKEN)
+        pass
+    
+    def __replacer__(self, main_text, text, sub):
+        return re.sub(re.escape(text), sub, main_text, flags=re.IGNORECASE)
+
+    def __replace_methods__(self, query1):
+        rep_list = [
+            ["monsoon", "June to September"],
+            ["independence day", "15th August"],
+            ["republic day", "26th January"]
+        ]
+        for rep in rep_list:
+            query1 = self.__replacer__(query1, rep[0], rep[1])
+        query1 = query1.replace(",","")
+        query1 = query1.replace("from ","")
+        return query1
+    
+    def __resp_WIT_to_Duckling__(self, resp):
+
+        resp_list = []
+        resp_list.append(resp)
+        # print(resp_list)
+
+        for respo in resp_list:
+            if 'wit$datetime:datetime' in respo['entities'].keys():
+                respo['dim'] = 'time'
+                
+                if respo['entities']['wit$datetime:datetime'][0]['type'] == 'value':
+                    respo['value'] = {
+                        "type": respo['entities']['wit$datetime:datetime'][0]['type'],
+                        "values": respo['entities']['wit$datetime:datetime'][0]['values'],
+                        "value": respo['entities']['wit$datetime:datetime'][0]['value']
+                        }
+                else:
+                    respo['value'] = {
+                        "type": respo['entities']['wit$datetime:datetime'][0]['type'],
+                        "values": respo['entities']['wit$datetime:datetime'][0]['values'],
+                        "value": respo['entities']['wit$datetime:datetime'][0]['from']['value']
+                        }
+
+            else:
+                respo['dim'] = 'NA'
+
+        return resp_list
+
+    def get_response(self, query):
+        
+        query = self.__replace_methods__(query)
+        response = self.wit_client.message(query)
+
+        duckling_resp = self.__resp_WIT_to_Duckling__(resp = response)
+
+        return duckling_resp
+    
+    def search(self, responses):
+
+        for response in responses:
+            # print(json.dumps(response, indent=4))
+            if response['dim']=="time":
+                # print(f"Date-Time QUERY: {response['body']}")
+                # print(f"Spacy's response: {nlp_with_datetime_ner(query)}")
+                # print(f"Contents: {response['value']}")
+
+                # CASE 1 : single value specific year up to any grain level
+                if response['value']['type']=='value' and len(response['value']['values'])==1:
+                    # print("CASE 1")
+                    # print(f"Match the .date() at {response['value']['values'][0]['grain']} grain of {datetime.fromisoformat(response['value']['value'])}")
+                    return self.search_point_in_time(dt_in=datetime.fromisoformat(response['value']['value']), grain=response['value']['values'][0]['grain'])
+                
+                # CASE 2 : multi-value specific year up to any grain level
+                if response['value']['type']=='value' and len(response['value']['values'])>1 and datetime.fromisoformat(response['value']['values'][-1]['value']) <= local_now:
+                    # print("CASE 2")
+                    # print(f"Match the .date() at {response['value']['values'][0]['grain']} grain of {datetime.fromisoformat(response['value']['value'])}")
+                    # Calculate delta between two dates
+                    return self.search_point_in_time(dt_in=datetime.fromisoformat(response['value']['values'][0]['value']), grain=response['value']['values'][0]['grain'])
+
+                # CASE 3 : multi-value repetitive dates with granularity range
+                if response['value']['type']=='value' and len(response['value']['values'])>1 and datetime.fromisoformat(response['value']['values'][-1]['value']) > local_now:
+                    # print("CASE 3")
+                    # print(f"Match the .date() at {response['value']['values'][0]['grain']} grain of {datetime.fromisoformat(response['value']['value'])}")
+                    # Calculate delta between two dates
+                    date1 = datetime.fromisoformat(response['value']['values'][0]['value'])
+                    date2 = datetime.fromisoformat(response['value']['values'][1]['value'])
+                    delta = date2 - date1
+                    for rept_freq, num in {'week':7, 'month':30, 'year':365}.items():
+                        if delta.days//num==1:
+                            # print(f"Repeat frequency: {rept_freq}")
+                            if rept_freq=='week':
+                                return self.day_of_week_lookup(dt_in=date1, high_grain=response['value']['values'][0]['grain'])
+                            if rept_freq=='year' or rept_freq=='month':
+                                return self.repeat_lookup(date1, high_grain=response['value']['values'][0]['grain'], low_grain=rept_freq)
+                
+                # CASE 4 : single value fixed interval
+                if response['value']['type']=='interval' and len(response['value']['values'])==1:
+                    # print("CASE 4")
+                    # print(f"Restrict the .date() at {response['value']['values'][0]['from']['grain'] if 'from' in response['value']['values'][0].keys() else response['value']['values'][0]['to']['grain']} grain between {datetime.fromisoformat(response['value']['values'][0]['from']['value']) if 'from' in response['value']['values'][0].keys() else "???"} and {datetime.fromisoformat(response['value']['values'][0]['to']['value']) if 'to' in response['value']['values'][0].keys() else "???"}")
+                    if 'from' in response['value']['values'][0].keys() and 'to' in response['value']['values'][0].keys():
+                        return self.interval_lookup(dt_start=datetime.fromisoformat(response['value']['values'][0]['from']['value']), dt_end=datetime.fromisoformat(response['value']['values'][0]['to']['value']))
+                    elif 'from' in response['value']['values'][0].keys():
+                        return self.interval_lookup(dt_start=datetime.fromisoformat(response['value']['values'][0]['from']['value']))
+                    elif 'to' in response['value']['values'][0].keys():
+                        return self.interval_lookup(dt_end=datetime.fromisoformat(response['value']['values'][0]['to']['value']))
+                
+                # CASE 5 : multi-value fixed interval
+                if response['value']['type']=='interval' and len(response['value']['values'])>1 and (datetime.fromisoformat(response['value']['values'][-1]['from']['value']) if 'from' in response['value']['values'][-1].keys() else datetime.fromisoformat(response['value']['values'][-1]['to']['value'])) <= local_now:
+                    # print("CASE 5")
+                    # print(f"Restrict the .date() at {response['value']['values'][0]['from']['grain'] if 'from' in response['value']['values'][0].keys() else response['value']['values'][0]['to']['grain']} grain between {datetime.fromisoformat(response['value']['values'][0]['from']['value']) if 'from' in response['value']['values'][0].keys() else "???"} and {datetime.fromisoformat(response['value']['values'][0]['to']['value']) if 'to' in response['value']['values'][0].keys() else "???"}")
+                    return self.interval_lookup(dt_start=datetime.fromisoformat(response['value']['values'][0]['from']['value']), dt_end=datetime.fromisoformat(response['value']['values'][0]['to']['value']))
+                
+                # CASE 6 : multi-value sliding interval
+                if response['value']['type']=='interval' and len(response['value']['values'])>1 and (datetime.fromisoformat(response['value']['values'][-1]['from']['value']) if 'from' in response['value']['values'][-1].keys() else datetime.fromisoformat(response['value']['values'][-1]['to']['value'])) > local_now:
+                    # print("CASE 6")
+                    # print(f"Restrict the .date() at {response['value']['values'][0]['from']['grain'] if 'from' in response['value']['values'][0].keys() else response['value']['values'][0]['to']['grain']} grain between {datetime.fromisoformat(response['value']['values'][0]['from']['value']) if 'from' in response['value']['values'][0].keys() else "???"} and {datetime.fromisoformat(response['value']['values'][0]['to']['value']) if 'to' in response['value']['values'][0].keys() else "???"}")
+                    # print(f"Restrict the .date() at {response['value']['values'][0]['from']['grain']} grain between {datetime.fromisoformat(response['value']['values'][0]['from']['value'])} and {datetime.fromisoformat(response['value']['values'][0]['to']['value'])}")
+                    # dt_search.interval_lookup(dt_start=datetime.fromisoformat(response['value']['values'][0]['from']['value']), dt_end=datetime.fromisoformat(response['value']['values'][0]['to']['value']))
+                    # Calculate delta between two dates
+                    date1from = datetime.fromisoformat(response['value']['values'][0]['from']['value'] if 'from' in response['value']['values'][0].keys() else response['value']['values'][0]['to']['value'])
+                    date2 = datetime.fromisoformat(response['value']['values'][1]['from']['value'] if 'from' in response['value']['values'][1].keys() else response['value']['values'][1]['to']['value'])
+                    date1to = datetime.fromisoformat(response['value']['values'][0]['to']['value'] if 'to' in response['value']['values'][0].keys() else response['value']['values'][0]['from']['value'])
+                    delta = date2 - date1from
+                    for rept_freq, num in {'day':1, 'week':7, 'month':30, 'year':365}.items():
+                        if delta.days//num==1:
+                            # print(f"Repeat frequency: {rept_freq}")
+                            if rept_freq in ['year', 'month', 'day']:
+                                return self.repeat_interval_lookup(date1from, date1to, rept_freq)
+                else:
+                    return []
+    
+
+
 
 class DateSearch:
     def __init__(self, datebase):
@@ -439,26 +581,110 @@ class DateSearch:
 
 # if __name__ == "__main__":
 
-#     datetime_data = [datetime.fromisoformat(str(date)) for date in np.load(os.path.join('..', 'embed_store', 'datetime_metadata.npy'), allow_pickle=True) if date is not None]
-#     query = "March 30 2021"
+    # wit = WIT()
 
-#     # print(datetime_data)
+    # datetime_data = [datetime.fromisoformat(str(date)) for date in np.load(os.path.join('embed_store', 'datetime_metadata.npy'), allow_pickle=True) if date is not None]
+    # dt_search = DateSearch(datetime_data)
 
-#     duckling = DucklingEngine(port=8010)
-#     dt_search = DateSearch(datetime_data)
-#     dtime_indices = dt_search.search(duckling.get_response(query))
-#     del duckling
+    # print(datetime_data)
 
-#     current_file_dir = os.path.dirname(os.path.abspath(__file__))
-#     # embed_store_path = os.path.join(current_file_dir, '..', 'embed_store')
-#     # image_dir = os.path.join(current_file_dir, '..', 'ImageSamples')
-#     embed_store_path = os.path.join(current_file_dir, '..')
-#     image_dir = os.path.join(current_file_dir, '..', '..', '..', 'photos_backup')
-#     image_paths = [os.path.join(image_dir, filename) for filename in os.listdir(image_dir) if filename.lower().endswith(('.jpg', 'jpeg', '.png', '.heic', '.heif'))]
+    # queries = [
+    # "photos from Feb 2021",
+    # "Photos from Monsoon 2024",
+    # "Pictures captured on Republic day",
+    # "photos from Feb to March 2021",
+    # "Show me photos from Holi 2022",
+    # "Find images from September 2023",
+    # "Photos taken between October 15, 2024, and November 15, 2024",
+    # "Images from last year's Durga Puja",
+    # "Images of garba during navratri",
+    # "Pictures from this morning in Bengaluru",
+    # "Show me photos from December 2023 in Mumbai",
+    # "Images taken on a Sunday morning",
+    # "Photos captured on Indian Independence Day 2021",
+    # "Pictures from the summer of 2020",
+    # "Show me images taken around sunset last Tuesday",
+    # "Photos from Ganesh Chaturthi 2025",
+    # "Images from March to May 2023 ",
+    # "Pictures taken during lunchtime on April 10, 2025",
+    # "Show me photos from last Christmas",
+    # "Find images from the New Year's Eve party 2023",
+    # "Photos from the past week in Delhi",
+    # "Images captured after 7 PM in Chennai",
+    # "Pictures taken on Ugadi 2024",
+    # "Show me photos from the winter of 2022",
+    # "Images from Vishu 2025",
+    # "Photos from around 6 AM on a Monday",
+    # "Pictures from the Maharashtra election day 2024",
+    # "what a good show at Nashik"
+    # ]
+
+    # for query in queries:
+        # resp = wit.get_response(query= query)
+        # search_idx = dt_search.search(responses= wit.get_response(query= query))
+        # print(search_idx)
+        # print("*"*10)
+        # resp_list = []
+        # resp_list.append(resp)
+        # # print(resp_list)
+
+        # for respo in resp_list:
+        #     if 'wit$datetime:datetime' in respo['entities'].keys():
+        #         respo['dim'] = 'time'
+                
+        #         if respo['entities']['wit$datetime:datetime'][0]['type'] == 'value':
+        #             respo['value'] = {
+        #                 "type": respo['entities']['wit$datetime:datetime'][0]['type'],
+        #                 "values": respo['entities']['wit$datetime:datetime'][0]['values'],
+        #                 "value": respo['entities']['wit$datetime:datetime'][0]['value']
+        #                 }
+        #         else:
+        #             respo['value'] = {
+        #                 "type": respo['entities']['wit$datetime:datetime'][0]['type'],
+        #                 "values": respo['entities']['wit$datetime:datetime'][0]['values'],
+        #                 "value": respo['entities']['wit$datetime:datetime'][0]['from']['value']
+        #                 }
+
+                                  
+        #     else:
+        #         respo['dim'] = 'NA'
+            
+        #     # if respo['dim'] == 'time':
+        #         # print(respo['entities']['wit$datetime:datetime'][0]['type'])
+        #         # print(respo['entities']['wit$datetime:datetime'][0].keys())
+        #         # print(respo.keys())
+        #         # print(respo['value'])
+        
+        # for respo in resp_list:
+        #     search_idx = dt_search.search(responses= resp_list)
+        #     print(search_idx)
+
+
+        # print("*"*10)
+
+
+# value['value']
+# value['type']
+# same level as dim in respo
+
+    # datetime_data = [datetime.fromisoformat(str(date)) for date in np.load(os.path.join('..', 'embed_store', 'datetime_metadata.npy'), allow_pickle=True) if date is not None]
+    # query = "March 30 2021"
+
+    # # print(datetime_data)
+
+    # duckling = DucklingEngine(port=8010)
+    # dt_search = DateSearch(datetime_data)
+    # dtime_indices = dt_search.search(duckling.get_response(query))
+    # del duckling
+
+    # current_file_dir = os.path.dirname(os.path.abspath(__file__))
+    # # embed_store_path = os.path.join(current_file_dir, '..', 'embed_store')
+    # # image_dir = os.path.join(current_file_dir, '..', 'ImageSamples')
+    # embed_store_path = os.path.join(current_file_dir, '..')
+    # image_dir = os.path.join(current_file_dir, '..', '..', '..', 'photos_backup')
+    # image_paths = [os.path.join(image_dir, filename) for filename in os.listdir(image_dir) if filename.lower().endswith(('.jpg', 'jpeg', '.png', '.heic', '.heif'))]
     
-#     print(f"Total images: {len(image_paths)}")
+    # print(f"Total images: {len(image_paths)}")
 
-#     dt_ext = DateTimeExtractor(embedding_dir=embed_store_path)
-#     dt_ext.generate_datetime_metadata(image_paths)
-
-
+    # dt_ext = DateTimeExtractor(embedding_dir=embed_store_path)
+    # dt_ext.generate_datetime_metadata(image_paths)
