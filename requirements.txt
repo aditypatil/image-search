@@ -9,7 +9,7 @@ matplotlib==3.10.1
 numpy==2.2.4
 onnxruntime==1.21.0
 pandas==2.2.3
-pillow==11.2.1
+pillow==12.2.0
 pillow_heif==0.22.0
 scikit-learn==1.6.1
 torch==2.6.0
